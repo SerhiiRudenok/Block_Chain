@@ -1,0 +1,18 @@
+﻿@model Block_Chain_Example_1.Models.Block
+
+@{
+    ViewData["Title"] = "Редагування блоку";
+}
+
+<h2>Редагувати блок N @Model.Index</h2>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Index" />
+    <input type="hidden" asp-for="PrevHash" />
+    <input type="hidden" asp-for="Timestamp" />
+    <div class="form-group">
+        <label asp-for="Data"></label>
+        <input asp-for="Data" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-primary mt-2">Зберегти</button>
+</form>

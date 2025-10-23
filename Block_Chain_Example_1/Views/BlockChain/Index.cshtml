@@ -1,0 +1,71 @@
+﻿@model IEnumerable<Block_Chain_Example_1.Models.Block>
+
+@{
+    ViewData["Title"] = "Index";
+    int? firstInvalidIndex = ViewBag.FirstInvalidIndex as int?;
+}
+
+<h1>Index</h1>
+
+<form method="post" asp-action="Add" class="mb-3">
+    <div class="mb-2">
+        <input type="text" name="data" placeholder="Введіть дані блоку" class="form-control" />
+    </div>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Додати блок</button>
+        <a asp-action="Search" class="btn btn-secondary">Пошук блоку</a>
+    </div>
+</form>
+
+@{
+    string consistencyMessage = ViewBag.ConsistencyMessage as string;
+}
+
+@if (!string.IsNullOrEmpty(consistencyMessage))
+{
+    <p class="text-danger"><strong>@consistencyMessage</strong></p>
+}
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>@Html.DisplayNameFor(model => model.Index)</th>
+            <th>@Html.DisplayNameFor(model => model.Data)</th>
+            <th>@Html.DisplayNameFor(model => model.PrevHash)</th>
+            <th>@Html.DisplayNameFor(model => model.Hash)</th>
+            <th>@Html.DisplayNameFor(model => model.Timestamp)</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            string rowClass = "";
+
+            if (firstInvalidIndex.HasValue)
+            {
+                if (item.Index < firstInvalidIndex.Value)
+                {
+                    rowClass = "table-success"; // до пошкодженого
+                }
+                else
+                {
+                    rowClass = "table-danger"; // пошкоджений і всі після
+                }
+            }
+
+            <tr class="@rowClass">
+                <td>@item.Index</td>
+                <td>@item.Data</td>
+                <td>@item.PrevHash</td>
+                <td>@item.Hash</td>
+                <td>@item.Timestamp.ToString("dd MMMM yyyy 'р.', HH:mm:ss", new System.Globalization.CultureInfo("uk-UA"))</td>
+                <td>
+                    @Html.ActionLink("Edit", "Edit", new { id = item.Index })
+                    @Html.ActionLink("Details", "Details", new { /* id=item.PrimaryKey */ })
+                    @Html.ActionLink("Delete", "Delete", new { /* id=item.PrimaryKey */ })
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
