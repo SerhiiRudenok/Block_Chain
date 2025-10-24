@@ -15,7 +15,6 @@ namespace Block_Chain_Example_1.Controllers
         {
             ViewBag.Valid = _blockChainService.IsValid();                           // Перевірити валідність всього блокчейну
             ViewBag.FirstInvalidIndex = _blockChainService.GetFirstInvalidIndex();  // Отримати індекс першого невалідного блоку
-            ViewBag.ConsistencyMessage = _blockChainService.CheckHashIntegrityMessage(); // Повідомлення "Порушено цілісність ланцюга блоків."
             return View(_blockChainService.Chain);
         }
 
@@ -76,8 +75,10 @@ namespace Block_Chain_Example_1.Controllers
                 return NotFound();
 
             block.Data = updatedBlock.Data;
+            block.Signature = updatedBlock.Signature; // оновити підпис
             block.Hash = block.ComputeHash(); // оновити хеш після зміни
-            ViewBag.Vlid = _blockChainService.IsValid();
+            
+            ViewBag.Valid = _blockChainService.IsValid();
 
             return RedirectToAction(nameof(Index));
         }
@@ -119,7 +120,6 @@ namespace Block_Chain_Example_1.Controllers
             ViewBag.IsPost = true;
             return View();
         }
-
 
 
     }

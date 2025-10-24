@@ -17,13 +17,9 @@
     </div>
 </form>
 
-@{
-    string consistencyMessage = ViewBag.ConsistencyMessage as string;
-}
-
-@if (!string.IsNullOrEmpty(consistencyMessage))
+@if (ViewBag.Valid == false)
 {
-    <p class="text-danger"><strong>@consistencyMessage</strong></p>
+    <p class="text-danger"><strong>Порушено цілісність ланцюга блоків.</strong></p>
 }
 
 <table class="table table-bordered table-striped">
@@ -34,6 +30,7 @@
             <th>@Html.DisplayNameFor(model => model.PrevHash)</th>
             <th>@Html.DisplayNameFor(model => model.Hash)</th>
             <th>@Html.DisplayNameFor(model => model.Timestamp)</th>
+            <th>@Html.DisplayNameFor(model => model.Signature)</th>
             <th></th>
         </tr>
     </thead>
@@ -46,11 +43,11 @@
             {
                 if (item.Index < firstInvalidIndex.Value)
                 {
-                    rowClass = "table-success"; // до пошкодженого
+					rowClass = "table-success"; // валідний блок
                 }
                 else
                 {
-                    rowClass = "table-danger"; // пошкоджений і всі після
+					rowClass = "table-danger"; // невалідний блок і всі після нього
                 }
             }
 
@@ -60,6 +57,7 @@
                 <td>@item.PrevHash</td>
                 <td>@item.Hash</td>
                 <td>@item.Timestamp.ToString("dd MMMM yyyy 'р.', HH:mm:ss", new System.Globalization.CultureInfo("uk-UA"))</td>
+                <td>@item.Signature</td>
                 <td>
                     @Html.ActionLink("Edit", "Edit", new { id = item.Index })
                     @Html.ActionLink("Details", "Details", new { /* id=item.PrimaryKey */ })

@@ -1,20 +1,35 @@
 ﻿using Block_Chain_Example_1.Models;
+using System.Security.Cryptography;
 
 namespace Block_Chain_Example_1.Services
 {
     public class BlockChainService
     {
         public List<Block> Chain { get; set; } = new List<Block>();
+        private readonly RSAParameters _privateKey;
+        private readonly RSAParameters _publicKey;
+        private readonly string _publickKeyXml;
+
 
         public BlockChainService()
         {
-            Chain.Add(new Block(0, "Генезіс-блок", "0"));
+            var rsa = RSA.Create();
+            _privateKey = rsa.ExportParameters(true);
+            _publicKey = rsa.ExportParameters(false);
+            _publickKeyXml = rsa.ToXmlString(false);
+
+            var block = new Block(0, "Генезіс-блок", "");
+
+            block.Sign(_privateKey, _publickKeyXml);
+            Chain.Add(block);
         }
+
 
         public void AddBlock(string data)
         {
             var prevBlock = Chain[Chain.Count - 1];
             var newBlock = new Block(Chain.Count, data, prevBlock.Hash);
+            newBlock.Sign(_privateKey, _publickKeyXml);
             Chain.Add(newBlock);
 
         }
@@ -23,65 +38,30 @@ namespace Block_Chain_Example_1.Services
         {
             for (int i = 1; i < Chain.Count; i++)
             {
-            var current = Chain[i];
+                var current = Chain[i];
                 var prevBlock = Chain[i - 1];
 
                 if (current.PrevHash != prevBlock.Hash) return false;
                 if (current.Hash != current.ComputeHash()) return false;
+                if (!current.Verify()) return false;
             }
             return true;
         }
 
 
-        public List<bool> GetValidityMap()  // Повертає список валідності для кожного блоку
-        {
-            var validity = new List<bool>();
-
-            for (int i = 0; i < Chain.Count; i++)
-            {
-                if (i == 0)
-                {
-                    validity.Add(true); // Генезіс-блок завжди валідний
-                    continue;
-                }
-
-                var current = Chain[i];
-                var previous = Chain[i - 1];
-
-                bool isValid = current.PrevHash == previous.Hash && current.IsHashValid();
-                validity.Add(isValid);
-            }
-
-            return validity;
-        }
-
-        public int? GetFirstInvalidIndex()  // Повертає індекс першого невалідного блоку або null, якщо всі валідні
+        public int? GetFirstInvalidIndex()
         {
             for (int i = 1; i < Chain.Count; i++)
             {
                 var current = Chain[i];
-                var previous = Chain[i - 1];
+                var prevBlock = Chain[i - 1];
 
-                if (current.PrevHash != previous.Hash || !current.IsHashValid())
-                    return i - 1;
-            }
-            return null;
-        }
+                bool hashIsMatch = current.PrevHash == prevBlock.Hash;    // Перевірка відповідності хешів
+                bool hashIsValid = current.Hash == current.ComputeHash(); // Перевірка валідності хешу
+                bool signatureIsValid = current.Verify();                 // Перевірка валідності підпису
 
-        public string CheckHashIntegrityMessage()  // Повідомлення "Порушено цілісність ланцюга блоків."
-        {
-            for (int i = 1; i < Chain.Count; i++)
-            {
-                var current = Chain[i];
-                var previous = Chain[i - 1];
-
-                bool hashesMatch = current.PrevHash == previous.Hash;
-                bool hashIsValid = current.Hash == current.ComputeHash();
-
-                if (!hashesMatch || !hashIsValid)
-                {
-                    return "Порушено цілісність ланцюга блоків.";
-                }
+                if (!hashIsMatch || !hashIsValid || !signatureIsValid)
+                    return i;
             }
 
             return null;
@@ -98,12 +78,6 @@ namespace Block_Chain_Example_1.Services
                 return Chain.FirstOrDefault(b => b.Hash.Equals(query, StringComparison.OrdinalIgnoreCase));
             }
         }
-
-
-
-
-
-
 
     }
 }
