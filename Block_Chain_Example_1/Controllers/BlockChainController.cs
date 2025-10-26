@@ -1,6 +1,8 @@
-﻿using Block_Chain_Example_1.Services;
+﻿using Block_Chain_Example_1.Models;
+using Block_Chain_Example_1.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Block_Chain_Example_1.Controllers
@@ -20,11 +22,36 @@ namespace Block_Chain_Example_1.Controllers
 
 
         [HttpPost]
-        public IActionResult Add(string data)
+        [ValidateAntiForgeryToken]
+        public IActionResult Add(string data, string privateKeyBase) // ДОДАЮ новий блоку з підписом користувача
         {
-            _blockChainService.AddBlock(data);
-            return RedirectToAction("Index");
+            try
+            {
+                var prevBlock = _blockChainService.Chain.Last();    // Отримую останній блок у ланцюжку
+                var newBlock = new Block(_blockChainService.Chain.Count, data, prevBlock.Hash); // Створюю новий блок: індекс = порядковий номер, дані = передані дані, PrevHash = хеш останнього блоку
 
+                // 1. Декодую Base64-рядок у байти
+                byte[] keyBytes = Convert.FromBase64String(privateKeyBase);
+
+                // 2. Імпортую приватний ключ
+                var rsa = RSA.Create();
+                rsa.ImportRSAPrivateKey(keyBytes, out _); // PKCS#1 формат
+
+                // 3. Експортую параметри для підпису
+                var privateKey = rsa.ExportParameters(true);
+                var publicKeyXml = rsa.ToXmlString(false); // зберігаю публічний ключ у XML
+
+                // 4. Підписую блок
+                newBlock.Sign(privateKey, publicKeyXml);
+                _blockChainService.Chain.Add(newBlock);
+
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                ViewBag.Error = "Помилка при додаванні блоку: " + ex.Message;
+                return View("Index", _blockChainService.Chain);
+            }
         }
 
 
@@ -120,6 +147,23 @@ namespace Block_Chain_Example_1.Controllers
             ViewBag.IsPost = true;
             return View();
         }
+
+
+        // Генерація нової нового RSA-ключа
+        [HttpPost]
+        public IActionResult GenerateKey()
+        {
+            // Генерація RSA-ключа
+            using var rsa = RSA.Create(512);
+            byte[] privateKeyBytes = rsa.ExportRSAPrivateKey();
+            string base64Key = Convert.ToBase64String(privateKeyBytes);
+
+            ViewBag.GeneratedKey = base64Key;
+
+            // Повернення на Index.cshtml
+            return View("Index", _blockChainService.Chain);
+        }
+
 
 
     }

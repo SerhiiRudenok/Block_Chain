@@ -48,14 +48,14 @@ namespace Block_Chain_Example_1.Models
 
         public bool Verify() // Перевірити підпис блоку за допомогою публічного ключа
         {
-            if (string.IsNullOrWhiteSpace(Signature)) return false;
+            if (string.IsNullOrWhiteSpace(Signature)) return false;     // Якщо підпис відсутній, вважаю його недійсним
             try
             {
-                var rsa = RSA.Create();
-                rsa.FromXmlString(PublickKeyXml);
-                byte[] data = Encoding.UTF8.GetBytes(Hash);
-                byte[] sig = Convert.FromBase64String(Signature);
-                return rsa.VerifyData(data, sig, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                var rsa = RSA.Create();                             // Створюю новий екземпляр RSA для перевірки підпису
+                rsa.FromXmlString(PublickKeyXml);                   // Імпортую публічний ключ з XML
+                byte[] data = Encoding.UTF8.GetBytes(Hash);         // Отримую байти хешу блоку
+                byte[] sig = Convert.FromBase64String(Signature);   // Декодую підпис з Base64
+                return rsa.VerifyData(data, sig, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1); // Перевіряю підпис за допомогою SHA256
             }
             catch // Після редагування Signature, якщо виникає помилка під час перевірки - вважаю підпис недійсним
             {

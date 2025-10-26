@@ -9,13 +9,35 @@
 
 <form method="post" asp-action="Add" class="mb-3">
     <div class="mb-2">
+        <label for="data">Дані блоку</label>
         <input type="text" name="data" placeholder="Введіть дані блоку" class="form-control" />
+    </div>
+    <div class="mb-2">
+        <label for="privateKeyBase">Приватний ключ (Base64)</label>
+        <textarea name="privateKeyBase" class="form-control" rows="3" placeholder="Вставте приватний ключ у форматі Base64"></textarea>
     </div>
     <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary">Додати блок</button>
         <a asp-action="Search" class="btn btn-secondary">Пошук блоку</a>
     </div>
 </form>
+
+@* Генерація приватного ключа у форматі Base64 *@
+<form method="post" asp-action="GenerateKey" class="mb-3">
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success">Згенерувати ключ</button>
+    </div>
+</form>
+
+@if (ViewBag.GeneratedKey != null)
+{
+    <div class="mb-2">
+        <label>Згенерований приватний ключ (Base64):</label>
+        <textarea class="form-control" rows="3" readonly id="generatedKey">@ViewBag.GeneratedKey</textarea>
+        <button type="button" class="btn btn-outline-secondary mt-2" onclick="navigator.clipboard.writeText(document.getElementById('generatedKey').value)">Копіювати ключ</button>
+    </div>
+}
+
 
 @if (ViewBag.Valid == false)
 {
@@ -31,6 +53,7 @@
             <th>@Html.DisplayNameFor(model => model.Hash)</th>
             <th>@Html.DisplayNameFor(model => model.Timestamp)</th>
             <th>@Html.DisplayNameFor(model => model.Signature)</th>
+            <th>Статус підпису</th>
             <th></th>
         </tr>
     </thead>
@@ -55,9 +78,10 @@
                 <td>@item.Index</td>
                 <td>@item.Data</td>
                 <td>@item.PrevHash</td>
-                <td>@item.Hash</td>
+                <td>@(item.Hash.Length > 10 ? item.Hash.Substring(0, 10) + "..." : item.Hash)</td>
                 <td>@item.Timestamp.ToString("dd MMMM yyyy 'р.', HH:mm:ss", new System.Globalization.CultureInfo("uk-UA"))</td>
-                <td>@item.Signature</td>
+                <td>@(item.Signature.Length > 10 ? item.Signature.Substring(0, 10) + "..." : item.Signature)</td>
+                <td>@(item.Verify() ? "валідний" : "невалідний")</td>
                 <td>
                     @Html.ActionLink("Edit", "Edit", new { id = item.Index })
                     @Html.ActionLink("Details", "Details", new { /* id=item.PrimaryKey */ })
