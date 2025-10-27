@@ -10,6 +10,7 @@ namespace Block_Chain_Example_1.Controllers
     public class BlockChainController : Controller
     {
         private static BlockChainService _blockChainService = new BlockChainService();
+
         // GET: BlockChainController
 
 
@@ -17,6 +18,7 @@ namespace Block_Chain_Example_1.Controllers
         {
             ViewBag.Valid = _blockChainService.IsValid();                           // Перевірити валідність всього блокчейну
             ViewBag.FirstInvalidIndex = _blockChainService.GetFirstInvalidIndex();  // Отримати індекс першого невалідного блоку
+            ViewBag.Difficulty = _blockChainService.Difficulty;                       // Поточна складність майнінгу
             return View(_blockChainService.Chain);
         }
 
@@ -31,21 +33,23 @@ namespace Block_Chain_Example_1.Controllers
                 var newBlock = new Block(_blockChainService.Chain.Count, data, prevBlock.Hash); // Створюю новий блок: індекс = порядковий номер, дані = передані дані, PrevHash = хеш останнього блоку
 
                 // 1. Декодую Base64-рядок у байти
-                byte[] keyBytes = Convert.FromBase64String(privateKeyBase);
+                byte[] keyBytes = Convert.FromBase64String(privateKeyBase);     // Приватний ключ у форматі PKCS#1
 
                 // 2. Імпортую приватний ключ
                 var rsa = RSA.Create();
                 rsa.ImportRSAPrivateKey(keyBytes, out _); // PKCS#1 формат
 
                 // 3. Експортую параметри для підпису
-                var privateKey = rsa.ExportParameters(true);
-                var publicKeyXml = rsa.ToXmlString(false); // зберігаю публічний ключ у XML
+                var privateKey = rsa.ExportParameters(true); // отримую параметри приватного ключа
+                var publicKeyXml = rsa.ToXmlString(false);   // зберігаю публічний ключ у XML
 
                 // 4. Підписую блок
-                newBlock.Sign(privateKey, publicKeyXml);
-                _blockChainService.Chain.Add(newBlock);
+                newBlock.Sign(privateKey, publicKeyXml);    // Підписую новий блок за допомогою приватного ключа, зберігаю публічний ключ у блоці для подальшої перевірки
 
-                return RedirectToAction(nameof(Index));
+                // 5. Майнінг блоку
+                var ms = _blockChainService.AddBlock(data); // Додаю блок до блокчейну через сервіс
+
+                return RedirectToAction("Index");
             }
             catch (Exception ex)
             {
@@ -149,7 +153,7 @@ namespace Block_Chain_Example_1.Controllers
         }
 
 
-        // Генерація нової нового RSA-ключа
+        // Генерація нового приватного ключа RSA-ключа
         [HttpPost]
         public IActionResult GenerateKey()
         {
@@ -159,12 +163,19 @@ namespace Block_Chain_Example_1.Controllers
             string base64Key = Convert.ToBase64String(privateKeyBytes);
 
             ViewBag.GeneratedKey = base64Key;
+            ViewBag.Difficulty = _blockChainService.Difficulty; // коли генерується ключ потрібно зберегти складність майнінгу
 
             // Повернення на Index.cshtml
             return View("Index", _blockChainService.Chain);
         }
 
-
+        [HttpPost]
+        public IActionResult SetDifficulty(int difficulty) { 
+            if(difficulty < 1) difficulty = 1;
+            if(difficulty > 6) difficulty = 6;
+            _blockChainService.Difficulty = difficulty;
+            return RedirectToAction("Index");
+        }
 
     }
 }

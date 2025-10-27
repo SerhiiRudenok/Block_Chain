@@ -7,31 +7,31 @@ namespace Block_Chain_Example_1.Services
     {
         public List<Block> Chain { get; set; } = new List<Block>();
         private readonly RSAParameters _privateKey;
-        private readonly RSAParameters _publicKey;
         private readonly string _publickKeyXml;
 
+        public int Difficulty { get; set; } = 3; // Визначає складність майнінгу (кількість провідних нулів у хеші)
 
         public BlockChainService()
         {
             var rsa = RSA.Create();                     //  створюю нову пару ключів: приватний і публічний
             _privateKey = rsa.ExportParameters(true);   // Зберігаю приватний ключ для підпису блоків
-            _publicKey = rsa.ExportParameters(false);   // Зберігаю публічний ключ для перевірки підписів
-            _publickKeyXml = rsa.ToXmlString(false);    // Зберігаю публічний ключ у форматі XML для передачі в блок
+            _publickKeyXml = rsa.ToXmlString(false);    // Зберігаю публічний ключ у форматі XML для зберігання в блоці
 
             var block = new Block(0, "Генезіс-блок", "");   // Створюю генезіс-блок з індексом 0, даними "Генезіс-блок" і порожнім PrevHash
-
+            block.Mine(Difficulty);                         // Генерую генезіс-блок з заданою складністю
             block.Sign(_privateKey, _publickKeyXml);        // Підписую генезіс-блок за допомогою приватного ключа
             Chain.Add(block);                               // Додаю генезіс-блок до ланцюжка
         }
 
 
-        public void AddBlock(string data)
+        public long AddBlock(string data)
         {
             var prevBlock = Chain[Chain.Count - 1]; // Отримую останній блок у ланцюжку
             var newBlock = new Block(Chain.Count, data, prevBlock.Hash); // Створюю новий блок: індекс = порядковий номер, дані = передані дані, PrevHash = хеш останнього блоку
+            newBlock.Mine(Difficulty);                  // Генерую новий блок з заданою складністю
             newBlock.Sign(_privateKey, _publickKeyXml); // Підписую новий блок за допомогою приватного ключа, зберігаю публічний ключ у блоці для подальшої перевірки
             Chain.Add(newBlock);                        // Додаю новий блок до ланцюжка
-
+            return newBlock.MiningDurationMs;           // Повертаю час майнінгу нового блоку
         }
 
         public bool IsValid()
@@ -44,6 +44,7 @@ namespace Block_Chain_Example_1.Services
                 if (current.PrevHash != prevBlock.Hash) return false;    // Перевірка відповідності хешів
                 if (current.Hash != current.ComputeHash()) return false; // Перевірка валідності хешу
                 if (!current.Verify()) return false;                     // Перевірка валідності підпису
+                if(!current.Hash.StartsWith(new string('0', current.Difficulty))) return false; // Перевірка складності майнінгу
             }
             return true;
         }

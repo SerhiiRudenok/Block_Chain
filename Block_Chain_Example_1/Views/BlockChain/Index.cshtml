@@ -7,7 +7,15 @@
 
 <h1>Index</h1>
 
-<form method="post" asp-action="Add" class="mb-3">
+@* Складність пошуку валідного хешу: кількість нулів на початку блоку *@
+<p>Difficulty @ViewBag.Difficulty</p>
+<form method="post" asp-action="SetDifficulty" class="d-flex gap-2 mb-3">
+    <input type="number" name="difficulty" placeholder="Введіть важкість" class="form-control" style="width: 150px; min=" 1" max="10" step="1" value="@ViewBag.Difficulty"/>
+    <button type="submit" class="btn btn-outline-secondary">Зберегти</button>
+</form>
+
+@* Форма для додавання нового блоку *@
+<form method="post" asp-action="Add" class="mb-3" id="addBlockForm">
     <div class="mb-2">
         <label for="data">Дані блоку</label>
         <input type="text" name="data" placeholder="Введіть дані блоку" class="form-control" />
@@ -21,6 +29,20 @@
         <a asp-action="Search" class="btn btn-secondary">Пошук блоку</a>
     </div>
 </form>
+
+@* Прогрес бар Spinner для візуального оформлення додавання блоку*@
+<div id="miningSpinner" class="text-center mb-2 d-none">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden"></span>
+    </div>
+    <p>Майнінг блоку, будь ласка зачекайте...</p>
+</div>
+
+<script>
+    document.querySelector('form[asp-action="Add"]').addEventListener('submit', function () {
+        document.getElementById('miningSpinner').classList.remove('d-none');
+    });
+</script>
 
 @* Генерація приватного ключа у форматі Base64 *@
 <form method="post" asp-action="GenerateKey" class="mb-3">
@@ -48,6 +70,8 @@
     <thead>
         <tr>
             <th>@Html.DisplayNameFor(model => model.Index)</th>
+            <th>@Html.DisplayNameFor(model => model.Nonce)</th>
+            <th>@Html.DisplayNameFor(model => model.MiningDurationMs)</th>
             <th>@Html.DisplayNameFor(model => model.Data)</th>
             <th>@Html.DisplayNameFor(model => model.PrevHash)</th>
             <th>@Html.DisplayNameFor(model => model.Hash)</th>
@@ -76,16 +100,27 @@
 
             <tr class="@rowClass">
                 <td>@item.Index</td>
+                <td>@item.Nonce</td>
+                <td>@item.MiningDurationMs</td>
                 <td>@item.Data</td>
-                <td>@item.PrevHash</td>
-                <td>@(item.Hash.Length > 10 ? item.Hash.Substring(0, 10) + "..." : item.Hash)</td>
-                <td>@item.Timestamp.ToString("dd MMMM yyyy 'р.', HH:mm:ss", new System.Globalization.CultureInfo("uk-UA"))</td>
-                <td>@(item.Signature.Length > 10 ? item.Signature.Substring(0, 10) + "..." : item.Signature)</td>
+                @* <td>@item.PrevHash</td> *@
+                <td>@(item.PrevHash.Length > 12 ? item.PrevHash.Substring(0, 12) + "..." : item.PrevHash)</td>
+                <td>@(item.Hash.Length > 12 ? item.Hash.Substring(0, 12) + "..." : item.Hash)</td>
+                <td>
+                    @{
+                        var parsed = DateTime.TryParse(item.Timestamp, out var dt)
+                        ? dt.ToString("dd MMMM yyyy 'р.', HH:mm:ss", new System.Globalization.CultureInfo("uk-UA"))
+                        : "Невірний формат дати";
+                    }
+                    @parsed
+                </td>
+                <td>@(item.Signature.Length > 12 ? item.Signature.Substring(0, 12) + "..." : item.Signature)</td>
                 <td>@(item.Verify() ? "валідний" : "невалідний")</td>
                 <td>
-                    @Html.ActionLink("Edit", "Edit", new { id = item.Index })
-                    @Html.ActionLink("Details", "Details", new { /* id=item.PrimaryKey */ })
-                    @Html.ActionLink("Delete", "Delete", new { /* id=item.PrimaryKey */ })
+                    @* @Html.ActionLink("Edit", "Edit", new { id = item.Index }) *@
+                    <a asp-action="Edit" asp-route-id="@item.Index" class="btn btn-sm btn-warning me-1">Edit</a>
+                    @* @Html.ActionLink("Details", "Details", new { /* id=item.PrimaryKey */ }) *@
+                    @* @Html.ActionLink("Delete", "Delete", new { /* id=item.PrimaryKey */ }) *@
                 </td>
             </tr>
         }
